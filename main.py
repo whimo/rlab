@@ -62,7 +62,7 @@ def start(message):
 @auth_required
 def status(message):
     info = read()
-    bot.send_message(message.chat.id, '\n'.join([key + ': ' + info[key] for key in info.keys()]))
+    bot.send_message(message.chat.id, '\n'.join([key + ': ' + str(info[key]) for key in info.keys()]))
 
 
 bot.polling()
