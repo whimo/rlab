@@ -109,7 +109,17 @@ def status(message):
     bot.send_message(message.chat.id, '\n'.join([key + ': ' + str(info[key]) + 'C' for key in sorted(info.keys())]))
 
 
-thread = Thread(target=bot.polling)
+def poll():
+    while True:
+        try:
+            bot.polling()
+
+        except Exception:
+            time.sleep(5)
+            continue
+
+
+thread = Thread(target=poll)
 thread.setDaemon(True)
 thread.start()
 
@@ -121,16 +131,22 @@ while True:
             for user in users:
                 try:
                     bot.send_message(int(user),
-                                     'CRITICAL TEMPERATURE on sensor {}: {}'.format(sensor, read()[sensor]))
-                except ValueError:
+                                     'CRITICAL TEMPERATURE on sensor {}: {}C'.format(sensor, read()[sensor]))
+                except Exception:
                     pass
-        criticals[sensor] += 1
-    info = read()
-    for sensor in info:
-        if info[sensor] >= critical_temp and sensor not in criticals:
-            criticals[sensor] = 1
 
-        if info[sensor] < critical_temp and sensor in criticals:
-            criticals = criticals.pop(sensor)
+        criticals[sensor] += 1
+
+    try:
+        info = read()
+        for sensor in info:
+            if info[sensor] >= critical_temp and sensor not in criticals:
+                criticals[sensor] = 1
+
+            if info[sensor] < critical_temp and sensor in criticals:
+                criticals = criticals.pop(sensor)
+
+    except Exception:
+        pass
 
     time.sleep(30)
