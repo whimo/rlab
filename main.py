@@ -137,16 +137,12 @@ while True:
 
         criticals[sensor] += 1
 
-    try:
-        info = read()
-        for sensor in info:
-            if info[sensor] >= critical_temp and sensor not in criticals:
-                criticals[sensor] = 1
+    info = read()
+    for sensor in info:
+        if info[sensor] >= critical_temp and sensor not in criticals:
+            criticals[sensor] = 1
 
-            if info[sensor] < critical_temp and sensor in criticals:
-                criticals = criticals.pop(sensor)
-
-    except Exception:
-        pass
+        if info[sensor] < critical_temp and sensor in criticals:
+            criticals.pop(sensor, None)
 
     time.sleep(30)
