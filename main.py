@@ -38,7 +38,7 @@ def read():
             else:
                 pos = lines[1].find('t=')
                 sensor_id = slave.split('/')[-2]
-                ret[sensors[sensor_id] if sensor_id in sensors else sensor_id] =\
+                ret[sensors[sensor_id].replace('\n', '') if sensor_id in sensors else sensor_id] =\
                     round(float(lines[1][pos + 2:]) / 1000.0, 1) if pos != -1 else 'READ ERROR'
 
     return ret if ret else {'Error': 'no sensors found'}
@@ -53,17 +53,17 @@ def main():
     os.system('sudo modprobe w1-gpio')
     os.system('sudo modprobe w1-therm')
 
-    with open(config.users_file, 'r') as f:
+    with open(os.path.join(config.homedir, config.users_file), 'r') as f:
         for user in f.readlines():
             if 'SECRET_KEY' in user:
-                secret_key = int(user.split(' ')[1])
+                secret_key = user.split()[1]
             else:
                 try:
                     users.append(int(user.replace('\n', '')))
                 except ValueError:
                     users.append(user.replace('\n', ''))
 
-    with open(config.sensors_file, 'r') as f:
+    with open(os.path.join(config.homedir, config.sensors_file), 'r') as f:
         for sensor_info in f.readlines():
             data = sensor_info.split(' ')
             if not data:
@@ -87,12 +87,13 @@ def start(message):
 
 @bot.message_handler(commands=['auth'])
 def auth(message):
-    if message.from_user.username not in users and message.chat.id not in users:
+    if message.chat.id not in users:
         if secret_key in message.text:
-            with open(config.users_file, 'w') as f:
+            with open(os.path.join(config.homedir, config.users_file), 'a') as f:
                 f.write(str(message.chat.id) + '\n')
 
             bot.send_message(message.chat.id, 'Success! /status or /s for status')
+            users.append(message.chat.id)
 
         else:
             bot.send_message(message.chat.id, 'Bad key, fuck off')
@@ -105,7 +106,7 @@ def auth(message):
 @auth_required
 def status(message):
     info = read()
-    bot.send_message(message.chat.id, '\n'.join([key + ': ' + str(info[key]) + 'C' for key in info.keys()]))
+    bot.send_message(message.chat.id, '\n'.join([key + ': ' + str(info[key]) + 'C' for key in sorted(info.keys())]))
 
 
 thread = Thread(target=bot.polling)
@@ -116,7 +117,7 @@ criticals = {}
 
 while True:
     for sensor in criticals:
-        if criticals[sensor] >= 6:
+        if criticals[sensor] % 6 == 1:
             for user in users:
                 try:
                     bot.send_message(int(user),
